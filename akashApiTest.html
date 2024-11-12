@@ -232,7 +232,38 @@
             <h3>Generated Test Assertions</h3>
             <div class="output-box" id="generatedTestAssertions"></div>
         </div>
+                 <div class="section">
+            <h3>JSON Schema Generation & Validation</h3>
+            <label for="requestJson">Request JSON:</label>
+            <textarea id="requestJson" placeholder='{"name": "John", "age": 30}' rows="6"></textarea><br><br>
+        
+            <label for="responseJson">Response JSON:</label>
+            <textarea id="responseJson" placeholder='{"name": "John", "age": 30}' rows="6"></textarea><br><br>
+        
+            <button onclick="generateJsonSchema()">Generate JSON Schema</button>
+            <button onclick="validateJson()">Validate Request & Response</button>
+        
+            <h3>Generated JSON Schema:</h3>
+            <pre id="generatedSchema"></pre>
+        
+            <h3>Validation Result:</h3>
+            <pre id="validationResult"></pre>
+        </div>
+<!-- Response Schema Validator Section -->
+<div class="schema-validator-container" id="schemaValidatorContainer" style="display: block;">
+    <h2>Response Schema Validator</h2>
+    
+    <label for="responseSchema">Response Schema (JSON format):</label>
+    <textarea id="responseSchema" placeholder="Enter the JSON schema to validate the response body"></textarea>
 
+    <label for="responseBodyToValidate">Response Body to Validate (JSON format):</label>
+    <textarea id="responseBodyToValidate" placeholder="Enter the response body to validate"></textarea>
+
+    <button type="button" onclick="validateResponseSchema()">Validate Schema</button>
+
+    <h3>Validation Result:</h3>
+    <div class="json-box" id="schemaValidationResult"></div>
+</div>
 
         <!-- JSON Path Generator & Formatter Section -->
         <div class="json-container" id="jsonContainer" style="display: block">
@@ -253,6 +284,89 @@
     </div>
 
     <script>
+
+        
+let generatedSchema = null;
+
+// Generate JSON Schema from Request JSON
+function generateJsonSchema() {
+    const sampleJson = document.getElementById("requestJson").value;
+    try {
+        const sampleObj = JSON.parse(sampleJson);
+        generatedSchema = {
+            "type": "object",
+            "properties": {}
+        };
+        for (let key in sampleObj) {
+            if (sampleObj.hasOwnProperty(key)) {
+                generatedSchema.properties[key] = { "type": typeof sampleObj[key] };
+            }
+        }
+        document.getElementById("generatedSchema").textContent = JSON.stringify(generatedSchema, null, 2);
+    } catch (error) {
+        alert("Invalid JSON in Request: " + error.message);
+    }
+}
+
+// Validate both Request and Response JSON against the generated schema
+function validateJson() {
+    const requestJson = document.getElementById("requestJson").value;
+    const responseJson = document.getElementById("responseJson").value;
+
+    try {
+        const ajv = new Ajv();  // Initialize AJV validator
+        const requestObj = JSON.parse(requestJson);
+        const responseObj = JSON.parse(responseJson);
+
+        if (!generatedSchema) {
+            alert("Please generate the schema first.");
+            return;
+        }
+
+        const validate = ajv.compile(generatedSchema);
+
+        const requestValid = validate(requestObj);
+        const responseValid = validate(responseObj);
+
+        const validationResultElement = document.getElementById("validationResult");
+        if (requestValid && responseValid) {
+            validationResultElement.textContent = "Request and Response JSON are valid according to the generated schema!";
+            validationResultElement.style.color = "green";
+        } else {
+            const errors = ajv.errorsText(validate.errors);
+            validationResultElement.textContent = `Validation Errors: \n${errors}`;
+            validationResultElement.style.color = "red";
+        }
+    } catch (error) {
+        alert("Error: " + error.message);
+    }
+}
+// Validate the response body against a schema using AJV
+function validateResponseSchema() {
+     const schema = document.getElementById('responseSchema').value;
+    const responseBody = document.getElementById('responseBodyToValidate').value;
+
+    try {
+        const ajv = new Ajv();  // Instantiate Ajv
+        const schemaObj = JSON.parse(schema);
+        const responseObj = JSON.parse(responseBody);
+
+        const validate = ajv.compile(schemaObj);
+        const valid = validate(responseObj);
+
+        const result = document.getElementById('schemaValidationResult');
+
+        if (valid) {
+            result.textContent = 'Schema is valid!';
+            result.style.color = 'green';
+        } else {
+            result.textContent = 'Schema validation failed: ' + ajv.errorsText(validate.errors);
+            result.style.color = 'red';
+        }
+    } catch (error) {
+        alert('Error during schema validation: ' + error.message);
+    }
+}
 
         // Fetch the API response and display status, headers, cookies, and body
         async function getApiResponse() {

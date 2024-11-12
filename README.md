@@ -7,3 +7,6 @@ Testing Tool for api
 -- get the snipit for different api framework:
      . Restassured . pytest . playwright .Nunit
 -- get the different testcases for validating different response.
+
+
+https://akashkumarsharma03.github.io/akashApiTest/akashApiTest.html

@@ -278,6 +278,7 @@
             }
 
             try {
+            if (uri != null) {
                 const response = await fetch(uri, {
                     method: httpMethod,
                     headers: headers
@@ -297,6 +298,7 @@
                 document.getElementById('responseBody').value = responseBody;
 
                 document.getElementById('responseContainer').style.display = 'block';
+            }
             } catch (error) {
                 alert('Error fetching API response: ' + error.message);
             }

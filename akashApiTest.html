@@ -5,7 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API Test Code Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/ajv@8.6.0/dist/ajv.bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
+        #loadTestChart {
+            background-color: #ddd;
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+        }
+
         /* Basic Styling for Dark Mode */
         body {
             font-family: 'Roboto', sans-serif;
@@ -13,6 +23,14 @@
             color: #e0e0e0;
             margin: 0;
             padding: 20px;
+        }
+
+        section {
+            display: none;
+        }
+
+        section.active {
+            display: block;
         }
 
         .container {
@@ -41,7 +59,7 @@
         select,
         textarea,
         button {
-            width: 95%;
+            width: 100%;
             padding: 10px;
             margin: 8px 0;
             font-size: 16px;
@@ -94,6 +112,27 @@
         .auth-field {
             display: none;
         }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        nav a {
+            color: #dcdcdc;
+            margin-right: 15px;
+            text-decoration: none;
+            font-size: 18px;
+            padding: 10px;
+            background-color: #121212;
+        }
+
+        nav a:hover {
+            background-color: #013e1a;
+            border-radius: 5px;
+        }
     </style>
 </head>
 
@@ -101,266 +140,322 @@
 
     <div class="container">
         <h1>API Test Code Generator</h1>
-        <form id="apiForm">
-            <label for="uri">API URI:</label>
-            <textarea id="uri" placeholder="Enter the API URI (e.g., /users, /products)"></textarea>
+        <!-- Navigation Bar -->
+        <nav>
+            <a href="#" onclick="showSection('api')">API </a>
+            <a href="#" onclick="showSection('json')">JSON</a>
+            <a href="#" onclick="showSection('loadTest')">API Load Test</a>
 
-            <label for="httpMethod">HTTP Method:</label>
-            <select id="httpMethod">
-                <option value="GET">GET</option>
-                <option value="POST">POST</option>
-                <option value="PUT">PUT</option>
-                <option value="DELETE">DELETE</option>
-                <option value="PATCH">PATCH</option>
-            </select>
+        </nav>
+        <section id="api">
+            <div class="container">
+                <h1>API Communication</h1>
+                <form id="apiForm">
+                    <label for="uri">API URI:</label>
+                    <textarea id="uri" placeholder="Enter the API URI (e.g., /users, /products)"></textarea>
 
-            <label for="authType">Authentication Type:</label>
-            <select id="authType" onchange="updateAuthFields()">
-                <option value="none">None</option>
-                <option value="basic">Basic Auth</option>
-                <option value="bearer">Bearer Token</option>
-            </select>
+                    <label for="httpMethod">HTTP Method:</label>
+                    <select id="httpMethod">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                        <option value="PATCH">PATCH</option>
+                    </select>
 
-            <!-- Authentication Fields -->
-            <div id="basicAuthFields" class="auth-field">
-                <label for="authUsername">Authentication Username:</label>
-                <textarea id="authUsername" placeholder="Enter username if Basic Auth selected"></textarea>
+                    <label for="authType">Authentication Type:</label>
+                    <select id="authType" onchange="updateAuthFields()">
+                        <option value="none">None</option>
+                        <option value="basic">Basic Auth</option>
+                        <option value="bearer">Bearer Token</option>
+                    </select>
 
-                <label for="authPassword">Authentication Password:</label>
-                <textarea id="authPassword" placeholder="Enter password if Basic Auth selected"></textarea>
+                    <!-- Authentication Fields -->
+                    <div id="basicAuthFields" class="auth-field">
+                        <label for="authUsername">Authentication Username:</label>
+                        <textarea id="authUsername" placeholder="Enter username if Basic Auth selected"></textarea>
+
+                        <label for="authPassword">Authentication Password:</label>
+                        <textarea id="authPassword" placeholder="Enter password if Basic Auth selected"></textarea>
+                    </div>
+
+                    <div id="bearerTokenField" class="auth-field">
+                        <label for="authToken">Bearer Token:</label>
+                        <textarea id="authToken" placeholder="Enter Bearer token if selected"></textarea>
+                    </div>
+
+                    <label for="headers">Headers (JSON format):</label>
+                    <textarea id="headers"
+                        placeholder="Enter request headers, e.g., {'Content-Type': 'application/json'}"></textarea>
+
+                    <label for="queryParams">Query Parameters (JSON format):</label>
+                    <textarea id="queryParams"
+                        placeholder="Enter query parameters, e.g., {'search': 'test'}"></textarea>
+
+                    <label for="pathParams">Path Parameters:</label>
+                    <textarea id="pathParams" placeholder="Enter path parameters (e.g., userId=123)"></textarea>
+
+                    <label for="body">Request Body (JSON format):</label>
+                    <textarea id="body" placeholder="Enter the request body, e.g., {'name': 'John'}"></textarea>
+
+                    <label for="responseFormat">Response Format:</label>
+                    <select id="responseFormat">
+                        <option value="json">JSON</option>
+                        <option value="xml">XML</option>
+                        <option value="text">Text</option>
+                        <option value="html">HTML</option>
+                        <option value="js">JS</option>
+                    </select>
+
+                    <label for="testFramework">Test Framework:</label>
+                    <select id="testFramework">
+                        <option value="restassured-cucumber">RestAssured with Cucumber</option>
+                        <option value="playwright">Playwright</option>
+                        <option value="cypress">Cypress</option>
+                        <option value="restassured-testng">RestAssured with TestNG</option>
+                        <option value="pytest">Pytest</option>
+                        <option value="robotframework">Robot Framework</option>
+                        <option value="nunit">NUnit</option>
+                    </select>
+
+                    <button type="button" onclick="generateCode()">Generate Code</button>
+                    <button type="button" onclick="getApiResponse()">Get Response</button>
+
+                </form>
+                <!-- Test Code Generation Output -->
+                <div class="output-container" id="outputContainer" style="display: block;">
+                    <h2>Generated Test Code</h2>
+                    <div class="output-box" id="generatedCode"></div>
+                </div>
+                <!-- Response Body Section -->
+                <div class="response-container" id="responseContainer" style="display: block;">
+                    <h2>Response Body Components</h2>
+
+                    <label for="responseStatus">Response Status:</label>
+                    <textarea id="responseStatus" placeholder="Enter the response status code (e.g., 200, 404)"
+                        readonly></textarea>
+
+                    <label for="responseHeaders">Response Headers:</label>
+                    <textarea id="responseHeaders"
+                        placeholder="Enter the response headers (e.g., {'Content-Type': 'application/json'})"
+                        readonly></textarea>
+
+                    <label for="responseCookies">Response Cookies:</label>
+                    <textarea id="responseCookies"
+                        placeholder="Enter the response cookies (e.g., {'session': 'abc123'})" readonly></textarea>
+
+                    <label for="responseBody">Response Body:</label>
+                    <textarea id="responseBody" placeholder="Enter the response body here (JSON/XML/etc.)"
+                        readonly></textarea>
+
+                    <button type="button" onclick="processResponse()">Process Response</button>
+                </div>
+
+                <!-- Prerequisites Section (e.g., Maven/Node modules) -->
+                <div class="output-container" id="prerequisitesContainer" style="display: block;">
+                    <h2>Framework Prerequisites</h2>
+                    <div class="output-box" id="generatedPrerequisites"></div>
+                </div>
+
+                <!-- Test Code Generation Output -->
+                <div class="output-container" id="outputContainer" style="display: block;">
+                    <h2>Generated Test Code</h2>
+                    <div class="output-box" id="generatedCode"></div>
+                </div>
+
+                <!-- Dynamic Test Case Generation Based on Response -->
+                <div class="response-container" id="responseContainer" style="display: block;">
+                    <h2>Dynamic Test Case Generation</h2>
+                    <label for="responseBody">Response Body:</label>
+                    <textarea id="responseBody" placeholder="Enter the response body here"></textarea>
+
+                    <label for="responseHeaders">Response Headers:</label>
+                    <textarea id="responseHeaders" placeholder="Enter the response headers"></textarea>
+
+                    <label for="responseCookies">Response Cookies:</label>
+                    <textarea id="responseCookies" placeholder="Enter the response cookies"></textarea>
+
+                    <label for="responseStatus">Response Status:</label>
+                    <textarea id="responseStatus" placeholder="Enter the response status code"></textarea>
+
+                    <button type="button" onclick="generateTestCases()">Generate Test Cases</button>
+
+                    <h3>Generated Test Assertions</h3>
+                    <div class="output-box" id="generatedTestAssertions"></div>
+                </div>
             </div>
+        </section>
+        <section id="json">
+            <div class="container">
+                <h1>Json test</h1>
+                <div class="section">
+                    <h3>JSON Schema Generation & Validation</h3>
+                    <label for="requestJson">Request JSON:</label>
+                    <textarea id="requestJson" placeholder='{"name": "John", "age": 30}' rows="6"></textarea><br><br>
 
-            <div id="bearerTokenField" class="auth-field">
-                <label for="authToken">Bearer Token:</label>
-                <textarea id="authToken" placeholder="Enter Bearer token if selected"></textarea>
+                    <label for="responseJson">Response JSON:</label>
+                    <textarea id="responseJson" placeholder='{"name": "John", "age": 30}' rows="6"></textarea><br><br>
+
+                    <button onclick="generateJsonSchema()">Generate JSON Schema</button>
+                    <button onclick="validateJson()">Validate Request & Response</button>
+
+                    <h3>Generated JSON Schema:</h3>
+                    <pre id="generatedSchema"></pre>
+
+                    <h3>Validation Result:</h3>
+                    <pre id="validationResult"></pre>
+                </div>
+                <!-- Response Schema Validator Section -->
+                <div class="schema-validator-container" id="schemaValidatorContainer" style="display: block;">
+                    <h2>Response Schema Validator</h2>
+
+                    <label for="responseSchema">Response Schema (JSON format):</label>
+                    <textarea id="responseSchema"
+                        placeholder="Enter the JSON schema to validate the response body"></textarea>
+
+                    <label for="responseBodyToValidate">Response Body to Validate (JSON format):</label>
+                    <textarea id="responseBodyToValidate" placeholder="Enter the response body to validate"></textarea>
+
+                    <button type="button" onclick="validateResponseSchema()">Validate Schema</button>
+
+                    <h3>Validation Result:</h3>
+                    <div class="json-box" id="schemaValidationResult"></div>
+                </div>
+                <!-- JSON Path Generator & Formatter Section -->
+                <div class="json-container" id="jsonContainer" style="display: block">
+                    <h2>JSON Path Generator and Formatter</h2>
+
+                    <label for="jsonInput">Enter JSON:</label>
+                    <textarea id="jsonInput" placeholder="Enter your JSON here"></textarea>
+
+                    <button type="button" onclick="generateJsonPaths()">Generate JSON Paths</button>
+                    <button type="button" onclick="formatJson()">Format JSON</button>
+
+                    <h3>Generated JSON Paths:</h3>
+                    <div class="json-box" id="generatedJsonPaths"></div>
+
+                    <h3>Formatted JSON:</h3>
+                    <div class="json-box" id="jsonValidationOutput"></div>
+                </div>
             </div>
-
-            <label for="headers">Headers (JSON format):</label>
-            <textarea id="headers"
-                placeholder="Enter request headers, e.g., {'Content-Type': 'application/json'}"></textarea>
-
-            <label for="queryParams">Query Parameters (JSON format):</label>
-            <textarea id="queryParams" placeholder="Enter query parameters, e.g., {'search': 'test'}"></textarea>
-
-            <label for="pathParams">Path Parameters:</label>
-            <textarea id="pathParams" placeholder="Enter path parameters (e.g., userId=123)"></textarea>
-
-            <label for="body">Request Body (JSON format):</label>
-            <textarea id="body" placeholder="Enter the request body, e.g., {'name': 'John'}"></textarea>
-
-            <label for="responseFormat">Response Format:</label>
-            <select id="responseFormat">
-                <option value="json">JSON</option>
-                <option value="xml">XML</option>
-                <option value="text">Text</option>
-                <option value="html">HTML</option>
-                <option value="js">JS</option>
-            </select>
-
-            <label for="testFramework">Test Framework:</label>
-            <select id="testFramework">
-                <option value="restassured-cucumber">RestAssured with Cucumber</option>
-                <option value="playwright">Playwright</option>
-                <option value="cypress">Cypress</option>
-                <option value="restassured-testng">RestAssured with TestNG</option>
-                <option value="pytest">Pytest</option>
-                <option value="robotframework">Robot Framework</option>
-                <option value="nunit">NUnit</option>
-            </select>
-
-            <button type="button" onclick="generateCode()">Generate Code</button>
-            <button type="button" onclick="getApiResponse()">Get Response</button>
-
-        </form>
-        <!-- Test Code Generation Output -->
-        <div class="output-container" id="outputContainer" style="display: block;">
-            <h2>Generated Test Code</h2>
-            <div class="output-box" id="generatedCode"></div>
-        </div>
-        <!-- Response Body Section -->
-        <div class="response-container" id="responseContainer" style="display: block;">
-            <h2>Response Body Components</h2>
-
-            <label for="responseStatus">Response Status:</label>
-            <textarea id="responseStatus" placeholder="Enter the response status code (e.g., 200, 404)"
-                readonly></textarea>
-
-            <label for="responseHeaders">Response Headers:</label>
-            <textarea id="responseHeaders"
-                placeholder="Enter the response headers (e.g., {'Content-Type': 'application/json'})"
-                readonly></textarea>
-
-            <label for="responseCookies">Response Cookies:</label>
-            <textarea id="responseCookies" placeholder="Enter the response cookies (e.g., {'session': 'abc123'})"
-                readonly></textarea>
-
-            <label for="responseBody">Response Body:</label>
-            <textarea id="responseBody" placeholder="Enter the response body here (JSON/XML/etc.)" readonly></textarea>
-
-            <button type="button" onclick="processResponse()">Process Response</button>
-        </div>
-
-        <!-- Prerequisites Section (e.g., Maven/Node modules) -->
-        <div class="output-container" id="prerequisitesContainer" style="display: block;">
-            <h2>Framework Prerequisites</h2>
-            <div class="output-box" id="generatedPrerequisites"></div>
-        </div>
-        
-        <!-- Dynamic Test Case Generation Based on Response -->
-        <div class="response-container" id="responseContainer" style="display: block;">
-            <h2>Dynamic Test Case Generation</h2>
-            <label for="responseBody">Response Body:</label>
-            <textarea id="responseBody" placeholder="Enter the response body here"></textarea>
-
-            <label for="responseHeaders">Response Headers:</label>
-            <textarea id="responseHeaders" placeholder="Enter the response headers"></textarea>
-
-            <label for="responseCookies">Response Cookies:</label>
-            <textarea id="responseCookies" placeholder="Enter the response cookies"></textarea>
-
-            <label for="responseStatus">Response Status:</label>
-            <textarea id="responseStatus" placeholder="Enter the response status code"></textarea>
-
-            <button type="button" onclick="generateTestCases()">Generate Test Cases</button>
-
-            <h3>Generated Test Assertions</h3>
-            <div class="output-box" id="generatedTestAssertions"></div>
-        </div>
-                 <div class="section">
-            <h3>JSON Schema Generation & Validation</h3>
-            <label for="requestJson">Request JSON:</label>
-            <textarea id="requestJson" placeholder='{"name": "John", "age": 30}' rows="6"></textarea><br><br>
-        
-            <label for="responseJson">Response JSON:</label>
-            <textarea id="responseJson" placeholder='{"name": "John", "age": 30}' rows="6"></textarea><br><br>
-        
-            <button onclick="generateJsonSchema()">Generate JSON Schema</button>
-            <button onclick="validateJson()">Validate Request & Response</button>
-        
-            <h3>Generated JSON Schema:</h3>
-            <pre id="generatedSchema"></pre>
-        
-            <h3>Validation Result:</h3>
-            <pre id="validationResult"></pre>
-        </div>
-<!-- Response Schema Validator Section -->
-<div class="schema-validator-container" id="schemaValidatorContainer" style="display: block;">
-    <h2>Response Schema Validator</h2>
-    
-    <label for="responseSchema">Response Schema (JSON format):</label>
-    <textarea id="responseSchema" placeholder="Enter the JSON schema to validate the response body"></textarea>
-
-    <label for="responseBodyToValidate">Response Body to Validate (JSON format):</label>
-    <textarea id="responseBodyToValidate" placeholder="Enter the response body to validate"></textarea>
-
-    <button type="button" onclick="validateResponseSchema()">Validate Schema</button>
-
-    <h3>Validation Result:</h3>
-    <div class="json-box" id="schemaValidationResult"></div>
-</div>
-
-        <!-- JSON Path Generator & Formatter Section -->
-        <div class="json-container" id="jsonContainer" style="display: block">
-            <h2>JSON Path Generator and Formatter</h2>
-
-            <label for="jsonInput">Enter JSON:</label>
-            <textarea id="jsonInput" placeholder="Enter your JSON here"></textarea>
-
-            <button type="button" onclick="generateJsonPaths()">Generate JSON Paths</button>
-            <button type="button" onclick="formatJson()">Format JSON</button>
-
-            <h3>Generated JSON Paths:</h3>
-            <div class="json-box" id="generatedJsonPaths"></div>
-
-            <h3>Formatted JSON:</h3>
-            <div class="json-box" id="jsonValidationOutput"></div>
-        </div>
     </div>
+    </section>
 
+    <!-- Load Testing Section -->
+    <section id="loadTest">
+        <div class="container">
+            <h1>API Load Test</h1>
+
+            <label for="loadTestUrl">API URL</label>
+            <input type="text" id="loadTestUrl" placeholder="Enter the API URL to test">
+
+            <label for="numRequests">Number of Requests</label>
+            <input type="number" id="numRequests" value="100" placeholder="100">
+
+            <label for="requestInterval">Interval between Requests (ms)</label>
+            <input type="number" id="requestInterval" value="1000" placeholder="1000">
+
+            <button onclick="startLoadTest()">Start Load Test</button>
+
+            <div id="loadTestResults" class="load-test-results"></div>
+            <!-- Graph for Load Test -->
+            <canvas id="loadTestChart"></canvas>
+        </div>
+    </section>
     <script>
 
-        
-let generatedSchema = null;
+        // Function to show specific section and hide others
+        function showSection(sectionId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('section');
+            sections.forEach(section => section.classList.remove('active'));
 
-// Generate JSON Schema from Request JSON
-function generateJsonSchema() {
-    const sampleJson = document.getElementById("requestJson").value;
-    try {
-        const sampleObj = JSON.parse(sampleJson);
-        generatedSchema = {
-            "type": "object",
-            "properties": {}
-        };
-        for (let key in sampleObj) {
-            if (sampleObj.hasOwnProperty(key)) {
-                generatedSchema.properties[key] = { "type": typeof sampleObj[key] };
+            // Show the selected section
+            const selectedSection = document.getElementById(sectionId);
+            selectedSection.classList.add('active');
+        }
+
+        let generatedSchema = null;
+
+        // Generate JSON Schema from Request JSON
+        function generateJsonSchema() {
+            const sampleJson = document.getElementById("requestJson").value;
+            try {
+                const sampleObj = JSON.parse(sampleJson);
+                generatedSchema = {
+                    "type": "object",
+                    "properties": {}
+                };
+                for (let key in sampleObj) {
+                    if (sampleObj.hasOwnProperty(key)) {
+                        generatedSchema.properties[key] = { "type": typeof sampleObj[key] };
+                    }
+                }
+                document.getElementById("generatedSchema").textContent = JSON.stringify(generatedSchema, null, 2);
+            } catch (error) {
+                alert("Invalid JSON in Request: " + error.message);
             }
         }
-        document.getElementById("generatedSchema").textContent = JSON.stringify(generatedSchema, null, 2);
-    } catch (error) {
-        alert("Invalid JSON in Request: " + error.message);
-    }
-}
 
-// Validate both Request and Response JSON against the generated schema
-function validateJson() {
-    const requestJson = document.getElementById("requestJson").value;
-    const responseJson = document.getElementById("responseJson").value;
+        // Validate both Request and Response JSON against the generated schema
+        function validateJson() {
+            const requestJson = document.getElementById("requestJson").value;
+            const responseJson = document.getElementById("responseJson").value;
 
-    try {
-        const ajv = new Ajv();  // Initialize AJV validator
-        const requestObj = JSON.parse(requestJson);
-        const responseObj = JSON.parse(responseJson);
+            try {
+                const ajv = new Ajv();  // Initialize AJV validator
+                const requestObj = JSON.parse(requestJson);
+                const responseObj = JSON.parse(responseJson);
 
-        if (!generatedSchema) {
-            alert("Please generate the schema first.");
-            return;
+                if (!generatedSchema) {
+                    alert("Please generate the schema first.");
+                    return;
+                }
+
+                const validate = ajv.compile(generatedSchema);
+
+                const requestValid = validate(requestObj);
+                const responseValid = validate(responseObj);
+
+                const validationResultElement = document.getElementById("validationResult");
+                if (requestValid && responseValid) {
+                    validationResultElement.textContent = "Request and Response JSON are valid according to the generated schema!";
+                    validationResultElement.style.color = "green";
+                } else {
+                    const errors = ajv.errorsText(validate.errors);
+                    validationResultElement.textContent = `Validation Errors: \n${errors}`;
+                    validationResultElement.style.color = "red";
+                }
+            } catch (error) {
+                alert("Error: " + error.message);
+            }
         }
+        // Validate the response body against a schema using AJV
+        function validateResponseSchema() {
+            const schema = document.getElementById('responseSchema').value;
+            const responseBody = document.getElementById('responseBodyToValidate').value;
 
-        const validate = ajv.compile(generatedSchema);
+            try {
+                const ajv = new Ajv();  // Instantiate Ajv
+                const schemaObj = JSON.parse(schema);
+                const responseObj = JSON.parse(responseBody);
 
-        const requestValid = validate(requestObj);
-        const responseValid = validate(responseObj);
+                const validate = ajv.compile(schemaObj);
+                const valid = validate(responseObj);
 
-        const validationResultElement = document.getElementById("validationResult");
-        if (requestValid && responseValid) {
-            validationResultElement.textContent = "Request and Response JSON are valid according to the generated schema!";
-            validationResultElement.style.color = "green";
-        } else {
-            const errors = ajv.errorsText(validate.errors);
-            validationResultElement.textContent = `Validation Errors: \n${errors}`;
-            validationResultElement.style.color = "red";
+                const result = document.getElementById('schemaValidationResult');
+
+                if (valid) {
+                    result.textContent = 'Schema is valid!';
+                    result.style.color = 'green';
+                } else {
+                    result.textContent = 'Schema validation failed: ' + ajv.errorsText(validate.errors);
+                    result.style.color = 'red';
+                }
+            } catch (error) {
+                alert('Error during schema validation: ' + error.message);
+            }
         }
-    } catch (error) {
-        alert("Error: " + error.message);
-    }
-}
-// Validate the response body against a schema using AJV
-function validateResponseSchema() {
-     const schema = document.getElementById('responseSchema').value;
-    const responseBody = document.getElementById('responseBodyToValidate').value;
-
-    try {
-        const ajv = new Ajv();  // Instantiate Ajv
-        const schemaObj = JSON.parse(schema);
-        const responseObj = JSON.parse(responseBody);
-
-        const validate = ajv.compile(schemaObj);
-        const valid = validate(responseObj);
-
-        const result = document.getElementById('schemaValidationResult');
-
-        if (valid) {
-            result.textContent = 'Schema is valid!';
-            result.style.color = 'green';
-        } else {
-            result.textContent = 'Schema validation failed: ' + ajv.errorsText(validate.errors);
-            result.style.color = 'red';
-        }
-    } catch (error) {
-        alert('Error during schema validation: ' + error.message);
-    }
-}
 
         // Fetch the API response and display status, headers, cookies, and body
         async function getApiResponse() {
@@ -386,27 +481,27 @@ function validateResponseSchema() {
             }
 
             try {
-            if (uri != null) {
-                const response = await fetch(uri, {
-                    method: httpMethod,
-                    headers: headers
-                });
+                if (uri != null) {
+                    const response = await fetch(uri, {
+                        method: httpMethod,
+                        headers: headers
+                    });
 
-                const responseBody = await response.text();
-                const responseHeaders = [...response.headers.entries()].reduce((acc, [key, value]) => {
-                    acc[key] = value;
-                    return acc;
-                }, {});
-                const responseCookies = document.cookie; // Get cookies if needed
+                    const responseBody = await response.text();
+                    const responseHeaders = [...response.headers.entries()].reduce((acc, [key, value]) => {
+                        acc[key] = value;
+                        return acc;
+                    }, {});
+                    const responseCookies = document.cookie; // Get cookies if needed
 
-                // Display the response details in the UI
-                document.getElementById('responseStatus').value = response.status;
-                document.getElementById('responseHeaders').value = JSON.stringify(responseHeaders, null, 2);
-                document.getElementById('responseCookies').value = responseCookies;
-                document.getElementById('responseBody').value = responseBody;
+                    // Display the response details in the UI
+                    document.getElementById('responseStatus').value = response.status;
+                    document.getElementById('responseHeaders').value = JSON.stringify(responseHeaders, null, 2);
+                    document.getElementById('responseCookies').value = responseCookies;
+                    document.getElementById('responseBody').value = responseBody;
 
-                document.getElementById('responseContainer').style.display = 'block';
-            }
+                    document.getElementById('responseContainer').style.display = 'block';
+                }
             } catch (error) {
                 alert('Error fetching API response: ' + error.message);
             }
@@ -627,6 +722,102 @@ function validateResponseSchema() {
             }
         }
 
+
+        //////////////////
+        async function startLoadTest() {
+            const url = document.getElementById('loadTestUrl').value;
+            const numRequests = parseInt(document.getElementById('numRequests').value);
+            const requestInterval = parseInt(document.getElementById('requestInterval').value);
+
+            let successfulRequests = 0;
+            let failedRequests = 0;
+            let totalRequests = 0;
+            let responseTimes = []; // Store response times for graph
+
+            const resultsContainer = document.getElementById('loadTestResults');
+            resultsContainer.innerHTML = 'Starting Load Test...<br>';
+
+            // Function to make API request and record response time
+            const makeRequest = async () => {
+                const startTime = Date.now();
+                try {
+                    const response = await fetch(url, { method: 'GET' });
+                    const endTime = Date.now();
+                    const responseTime = endTime - startTime;
+
+                    if (response.ok) {
+                        successfulRequests++;
+                    } else {
+                        failedRequests++;
+                    }
+
+                    responseTimes.push(responseTime); // Push the response time to the array
+                } catch (error) {
+                    const endTime = Date.now();
+                    const responseTime = endTime - startTime;
+                    failedRequests++;
+                    responseTimes.push(responseTime); // Push the failed response time
+                }
+                totalRequests++;
+
+                // Update result display
+                resultsContainer.innerHTML = `
+                    Total Requests: ${totalRequests}<br>
+                    Successful Requests: ${successfulRequests}<br>
+                    Failed Requests: ${failedRequests}<br>
+                `;
+                updateChart(responseTimes); // Update chart after each request
+            };
+
+            // Loop through the number of requests
+            for (let i = 0; i < numRequests; i++) {
+                setTimeout(makeRequest, i * requestInterval);
+            }
+        }
+
+        // Function to update the chart with new data
+        let chart;
+        const updateChart = (responseTimes) => {
+            if (!chart) {
+                const ctx = document.getElementById('loadTestChart').getContext('2d');
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({ length: responseTimes.length }, (_, i) => i + 1), // x-axis as request number
+                        datasets: [{
+                            label: 'Response Time (ms)',
+                            data: responseTimes,
+                            borderColor: '#e74c3c',
+                            borderWidth: 2,
+                            fill: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Request Number'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Response Time (ms)'
+                                },
+                                min: 0,
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Update the chart if it already exists
+                chart.data.labels = Array.from({ length: responseTimes.length }, (_, i) => i + 1);
+                chart.data.datasets[0].data = responseTimes;
+                chart.update();
+            }
+        };
     </script>
 
 </body>

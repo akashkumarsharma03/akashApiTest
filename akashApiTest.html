@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Code Generator</title>
+    <style>
+        /* Basic Styling for Dark Mode */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            padding: 30px;
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            color: #81c784;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 6px;
+            display: block;
+            color: #ddd;
+        }
+
+        input,
+        select,
+        textarea,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            font-size: 16px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            background-color: #333;
+            color: #e0e0e0;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        button {
+            background-color: #388e3c;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 12px;
+            border-radius: 6px;
+            border: none;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .output-container,
+        .response-container,
+        .json-container {
+            margin-top: 40px;
+            background-color: #333;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .output-box,
+        .response-box,
+        .json-box {
+            background-color: #444;
+            padding: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border: 1px solid #ddd;
+            color: #e0e0e0;
+        }
+
+        .auth-field {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>API Test Code Generator</h1>
+        <form id="apiForm">
+            <label for="uri">API URI:</label>
+            <textarea id="uri" placeholder="Enter the API URI (e.g., /users, /products)"></textarea>
+
+            <label for="httpMethod">HTTP Method:</label>
+            <select id="httpMethod">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+                <option value="PATCH">PATCH</option>
+            </select>
+
+            <label for="authType">Authentication Type:</label>
+            <select id="authType" onchange="updateAuthFields()">
+                <option value="none">None</option>
+                <option value="basic">Basic Auth</option>
+                <option value="bearer">Bearer Token</option>
+            </select>
+
+            <!-- Authentication Fields -->
+            <div id="basicAuthFields" class="auth-field">
+                <label for="authUsername">Authentication Username:</label>
+                <textarea id="authUsername" placeholder="Enter username if Basic Auth selected"></textarea>
+
+                <label for="authPassword">Authentication Password:</label>
+                <textarea id="authPassword" placeholder="Enter password if Basic Auth selected"></textarea>
+            </div>
+
+            <div id="bearerTokenField" class="auth-field">
+                <label for="authToken">Bearer Token:</label>
+                <textarea id="authToken" placeholder="Enter Bearer token if selected"></textarea>
+            </div>
+
+            <label for="headers">Headers (JSON format):</label>
+            <textarea id="headers"
+                placeholder="Enter request headers, e.g., {'Content-Type': 'application/json'}"></textarea>
+
+            <label for="queryParams">Query Parameters (JSON format):</label>
+            <textarea id="queryParams" placeholder="Enter query parameters, e.g., {'search': 'test'}"></textarea>
+
+            <label for="pathParams">Path Parameters:</label>
+            <textarea id="pathParams" placeholder="Enter path parameters (e.g., userId=123)"></textarea>
+
+            <label for="body">Request Body (JSON format):</label>
+            <textarea id="body" placeholder="Enter the request body, e.g., {'name': 'John'}"></textarea>
+
+            <label for="responseFormat">Response Format:</label>
+            <select id="responseFormat">
+                <option value="json">JSON</option>
+                <option value="xml">XML</option>
+                <option value="text">Text</option>
+                <option value="html">HTML</option>
+                <option value="js">JS</option>
+            </select>
+
+            <label for="testFramework">Test Framework:</label>
+            <select id="testFramework">
+                <option value="restassured-cucumber">RestAssured with Cucumber</option>
+                <option value="playwright">Playwright</option>
+                <option value="cypress">Cypress</option>
+                <option value="restassured-testng">RestAssured with TestNG</option>
+                <option value="pytest">Pytest</option>
+                <option value="robotframework">Robot Framework</option>
+                <option value="nunit">NUnit</option>
+            </select>
+
+            <button type="button" onclick="generateCode()">Generate Code</button>
+            <button type="button" onclick="getApiResponse()">Get Response</button>
+
+        </form>
+        <!-- Test Code Generation Output -->
+        <div class="output-container" id="outputContainer" style="display: block;">
+            <h2>Generated Test Code</h2>
+            <div class="output-box" id="generatedCode"></div>
+        </div>
+        <!-- Response Body Section -->
+        <div class="response-container" id="responseContainer" style="display: block;">
+            <h2>Response Body Components</h2>
+
+            <label for="responseStatus">Response Status:</label>
+            <textarea id="responseStatus" placeholder="Enter the response status code (e.g., 200, 404)"
+                readonly></textarea>
+
+            <label for="responseHeaders">Response Headers:</label>
+            <textarea id="responseHeaders"
+                placeholder="Enter the response headers (e.g., {'Content-Type': 'application/json'})"
+                readonly></textarea>
+
+            <label for="responseCookies">Response Cookies:</label>
+            <textarea id="responseCookies" placeholder="Enter the response cookies (e.g., {'session': 'abc123'})"
+                readonly></textarea>
+
+            <label for="responseBody">Response Body:</label>
+            <textarea id="responseBody" placeholder="Enter the response body here (JSON/XML/etc.)" readonly></textarea>
+
+            <button type="button" onclick="processResponse()">Process Response</button>
+        </div>
+
+        <!-- Prerequisites Section (e.g., Maven/Node modules) -->
+        <div class="output-container" id="prerequisitesContainer" style="display: block;">
+            <h2>Framework Prerequisites</h2>
+            <div class="output-box" id="generatedPrerequisites"></div>
+        </div>
+
+        <!-- Test Code Generation Output -->
+        <div class="output-container" id="outputContainer" style="display: block;">
+            <h2>Generated Test Code</h2>
+            <div class="output-box" id="generatedCode"></div>
+        </div>
+
+        <!-- Dynamic Test Case Generation Based on Response -->
+        <div class="response-container" id="responseContainer" style="display: block;">
+            <h2>Dynamic Test Case Generation</h2>
+            <label for="responseBody">Response Body:</label>
+            <textarea id="responseBody" placeholder="Enter the response body here"></textarea>
+
+            <label for="responseHeaders">Response Headers:</label>
+            <textarea id="responseHeaders" placeholder="Enter the response headers"></textarea>
+
+            <label for="responseCookies">Response Cookies:</label>
+            <textarea id="responseCookies" placeholder="Enter the response cookies"></textarea>
+
+            <label for="responseStatus">Response Status:</label>
+            <textarea id="responseStatus" placeholder="Enter the response status code"></textarea>
+
+            <button type="button" onclick="generateTestCases()">Generate Test Cases</button>
+
+            <h3>Generated Test Assertions</h3>
+            <div class="output-box" id="generatedTestAssertions"></div>
+        </div>
+
+
+        <!-- JSON Path Generator & Formatter Section -->
+        <div class="json-container" id="jsonContainer" style="display: block">
+            <h2>JSON Path Generator and Formatter</h2>
+
+            <label for="jsonInput">Enter JSON:</label>
+            <textarea id="jsonInput" placeholder="Enter your JSON here"></textarea>
+
+            <button type="button" onclick="generateJsonPaths()">Generate JSON Paths</button>
+            <button type="button" onclick="formatJson()">Format JSON</button>
+
+            <h3>Generated JSON Paths:</h3>
+            <div class="json-box" id="generatedJsonPaths"></div>
+
+            <h3>Formatted JSON:</h3>
+            <div class="json-box" id="jsonValidationOutput"></div>
+        </div>
+    </div>
+
+    <script>
+
+        // Fetch the API response and display status, headers, cookies, and body
+        async function getApiResponse() {
+            const uri = document.getElementById('uri').value;
+            const httpMethod = document.getElementById('httpMethod').value;
+            const authType = document.getElementById('authType').value;
+            const headersInput = document.getElementById('headers').value;
+            const headers = headersInput ? JSON.parse(headersInput) : {};
+
+            // Add authentication headers if needed
+            if (authType === 'bearer') {
+                const token = document.getElementById('authToken').value;
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+            } else if (authType === 'basic') {
+                const username = document.getElementById('authUsername').value;
+                const password = document.getElementById('authPassword').value;
+                if (username && password) {
+                    const basicAuth = 'Basic ' + btoa(username + ':' + password);
+                    headers['Authorization'] = basicAuth;
+                }
+            }
+
+            try {
+                const response = await fetch(uri, {
+                    method: httpMethod,
+                    headers: headers
+                });
+
+                const responseBody = await response.text();
+                const responseHeaders = [...response.headers.entries()].reduce((acc, [key, value]) => {
+                    acc[key] = value;
+                    return acc;
+                }, {});
+                const responseCookies = document.cookie; // Get cookies if needed
+
+                // Display the response details in the UI
+                document.getElementById('responseStatus').value = response.status;
+                document.getElementById('responseHeaders').value = JSON.stringify(responseHeaders, null, 2);
+                document.getElementById('responseCookies').value = responseCookies;
+                document.getElementById('responseBody').value = responseBody;
+
+                document.getElementById('responseContainer').style.display = 'block';
+            } catch (error) {
+                alert('Error fetching API response: ' + error.message);
+            }
+        }
+
+        // Process the entered response body and display its components
+        function processResponse() {
+            const responseStatus = document.getElementById('responseStatus').value;
+            const responseHeaders = document.getElementById('responseHeaders').value;
+            const responseCookies = document.getElementById('responseCookies').value;
+            const responseBody = document.getElementById('responseBody').value;
+
+            // Display parsed components
+            const parsedResponse = `
+        Status Code: ${responseStatus}\n\n
+        Response Headers: ${responseHeaders}\n\n
+        Response Cookies: ${responseCookies}\n\n
+        Response Body: ${responseBody}
+    `;
+
+            document.getElementById('parsedResponse').textContent = parsedResponse;
+        }
+
+
+        function updateAuthFields() {
+            const authType = document.getElementById('authType').value;
+            const basicAuthFields = document.getElementById('basicAuthFields');
+            const bearerTokenField = document.getElementById('bearerTokenField');
+
+            if (authType === 'basic') {
+                basicAuthFields.style.display = 'block';
+                bearerTokenField.style.display = 'none';
+            } else if (authType === 'bearer') {
+                basicAuthFields.style.display = 'none';
+                bearerTokenField.style.display = 'block';
+            } else {
+                basicAuthFields.style.display = 'none';
+                bearerTokenField.style.display = 'none';
+            }
+        }
+
+        // Generate code based on selected HTTP method and test framework
+        function generateCode() {
+            const uri = document.getElementById('uri').value;
+            const httpMethod = document.getElementById('httpMethod').value;
+            const authType = document.getElementById('authType').value;
+            const authUsername = document.getElementById('authUsername').value;
+            const authPassword = document.getElementById('authPassword').value;
+            const authToken = document.getElementById('authToken').value;
+            const headers = document.getElementById('headers').value;
+            const queryParams = document.getElementById('queryParams').value;
+            const pathParams = document.getElementById('pathParams').value;
+            const body = document.getElementById('body').value;
+            const responseFormat = document.getElementById('responseFormat').value;
+            const testFramework = document.getElementById('testFramework').value;
+
+            let generatedCode = '';
+
+            if (testFramework === 'restassured-cucumber') {
+                generatedCode += `// RestAssured with Cucumber Test Code\n`;
+                generatedCode += `@Given("I make a ${httpMethod} request to the API")\n`;
+                generatedCode += `public void makeApiRequest() {\n`;
+                if (authType === 'basic') {
+                    generatedCode += `    given().auth().basic("${authUsername}", "${authPassword}")\n`;
+                } else if (authType === 'bearer') {
+                    generatedCode += `    given().auth().oauth2("${authToken}")\n`;
+                }
+                generatedCode += `    .headers(${headers})\n`;
+                generatedCode += `    .queryParams(${queryParams})\n`;
+                generatedCode += `    .body(${body})\n`;
+                generatedCode += `    .when().${httpMethod.toLowerCase()}("${uri}")\n`;
+                generatedCode += `    .then().statusCode(200);\n`;
+                generatedCode += `}\n`;
+            } else if (testFramework === 'playwright') {
+                generatedCode += `// Playwright Test Code\n`;
+                generatedCode += `import { test, expect } from '@playwright/test';\n\n`;
+                generatedCode += `test('${httpMethod} request to ${uri}', async ({ request }) => {\n`;
+                generatedCode += `    const response = await request.${httpMethod.toLowerCase()}("${uri}", {\n`;
+                generatedCode += `        headers: ${headers},\n`;
+                generatedCode += `        params: ${queryParams},\n`;
+                generatedCode += `        body: ${body},\n`;
+                generatedCode += `    });\n`;
+                generatedCode += `    expect(response.status()).toBe(200);\n`;
+                generatedCode += `});\n`;
+            } else if (testFramework === 'cypress') {
+                generatedCode += `// Cypress Test Code\n`;
+                generatedCode += `describe('${httpMethod} request to ${uri}', () => {\n`;
+                generatedCode += `    it('should return 200', () => {\n`;
+                generatedCode += `        cy.request({\n`;
+                generatedCode += `            method: '${httpMethod.toUpperCase()}',\n`;
+                generatedCode += `            url: "${uri}",\n`;
+                generatedCode += `            headers: ${headers},\n`;
+                generatedCode += `            body: ${body},\n`;
+                generatedCode += `        }).then((response) => {\n`;
+                generatedCode += `            expect(response.status).to.eq(200);\n`;
+                generatedCode += `        });\n`;
+                generatedCode += `    });\n`;
+                generatedCode += `});\n`;
+            }
+
+            // Display the generated code in the output area
+            document.getElementById('generatedCode').textContent = generatedCode;
+            document.getElementById('outputContainer').style.display = 'block';
+
+            // Display response section
+            document.getElementById('responseContainer').style.display = 'block';
+            document.getElementById('jsonContainer').style.display = 'block';
+
+            // Display prerequisites
+            generatePrerequisites(testFramework);
+        }
+
+        // Generate test assertions based on response
+        function generateTestCases() {
+            const responseBody = document.getElementById('responseBody').value;
+            const responseStatus = document.getElementById('responseStatus').value;
+
+            let generatedAssertions = '';
+
+            // Dynamic test case generation based on response status
+            if (responseStatus === '200') {
+                generatedAssertions += `// Test case for 200 OK status\n`;
+                generatedAssertions += `assert response.status_code == 200;\n`;
+                generatedAssertions += `assert 'application/json' in response.headers['Content-Type'];\n`;
+            } else if (responseStatus === '400') {
+                generatedAssertions += `// Test case for 400 Bad Request\n`;
+                generatedAssertions += `assert response.status_code == 400;\n`;
+            }
+
+            // Dynamic assertions based on response body
+            if (responseBody.includes("error")) {
+                generatedAssertions += `assert 'error' in response.json();\n`;
+            }
+
+            // Display generated assertions
+            document.getElementById('generatedTestAssertions').textContent = generatedAssertions;
+        }
+
+        // Display prerequisites (dependencies for selected framework)
+        function generatePrerequisites(framework) {
+            let prerequisites = '';
+
+            switch (framework) {
+                case 'restassured-cucumber':
+                    prerequisites = `
+               
+                &lt;dependency&gt;
+                    &lt;groupId&gt;io.rest-assured&lt;/groupId&gt;
+                    &lt;artifactId&gt;rest-assured&lt;/artifactId&gt;
+                    &lt;version&gt;4.3.3&lt;/version&gt;
+                &lt;/dependency&gt;
+                &lt;dependency&gt;
+                    &lt;groupId&gt;io.cucumber&lt;/groupId&gt;
+                    &lt;artifactId&gt;cucumber-java&lt;/artifactId&gt;
+                    &lt;version&gt;6.10.4&lt;/version&gt;
+                &lt;/dependency&gt;
+               
+            `;
+                    break;
+                case 'playwright':
+                    prerequisites = `
+                
+                npm install playwright
+                
+            `;
+                    break;
+                case 'cypress':
+                    prerequisites = `
+                
+                npm install cypress
+                
+            `;
+                    break;
+                default:
+                    prerequisites = "No prerequisites available for this framework.";
+            }
+
+            // Display prerequisites
+            document.getElementById('generatedPrerequisites').innerHTML = prerequisites;
+        }
+
+        // Generate JSON Paths from the response body
+        function generateJsonPaths() {
+            const jsonInput = document.getElementById('jsonInput').value;
+            try {
+                const jsonObj = JSON.parse(jsonInput);
+                const jsonPaths = getJsonPaths(jsonObj, '$');
+                document.getElementById('generatedJsonPaths').textContent = jsonPaths.join('\n');
+            } catch (e) {
+                document.getElementById('generatedJsonPaths').textContent = 'Invalid JSON';
+            }
+        }
+
+        // Recursive function to extract JSON paths
+        function getJsonPaths(obj, parent) {
+            let paths = [];
+            if (typeof obj === 'object' && obj !== null) {
+                for (const key in obj) {
+                    if (obj.hasOwnProperty(key)) {
+                        paths = paths.concat(getJsonPaths(obj[key], parent + '.' + key));
+                    }
+                }
+            } else {
+                paths.push(parent);
+            }
+            return paths;
+        }
+
+        // Format the entered JSON
+        function formatJson() {
+            const jsonInput = document.getElementById('jsonInput').value;
+            try {
+                const jsonObj = JSON.parse(jsonInput);
+                const formattedJson = JSON.stringify(jsonObj, null, 2);
+                document.getElementById('jsonValidationOutput').textContent = formattedJson;
+            } catch (e) {
+                document.getElementById('jsonValidationOutput').textContent = 'Invalid JSON';
+            }
+        }
+
+    </script>
+
+</body>
+
+</html>

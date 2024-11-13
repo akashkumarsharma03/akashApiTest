@@ -195,7 +195,7 @@
                     <label for="pathParams">Path Parameters:</label>
                     <textarea id="pathParams" placeholder="Enter path parameters (e.g., userId=123)"></textarea>
 
-                    <label for="body">Request Body (JSON format):</label>
+                    <label for="body" id="bodyLabel">Request Body (JSON format):</label>
                     <textarea id="body" placeholder="Enter the request body, e.g., {'name': 'John'}"></textarea>
 
                     <label for="responseFormat">Response Format:</label>
@@ -255,12 +255,6 @@
                 <div class="output-container" id="prerequisitesContainer" style="display: block;">
                     <h2>Framework Prerequisites</h2>
                     <div class="output-box" id="generatedPrerequisites"></div>
-                </div>
-
-                <!-- Test Code Generation Output -->
-                <div class="output-container" id="outputContainer" style="display: block;">
-                    <h2>Generated Test Code</h2>
-                    <div class="output-box" id="generatedCode"></div>
                 </div>
 
                 <!-- Dynamic Test Case Generation Based on Response -->
@@ -363,7 +357,23 @@
         </div>
     </section>
     <script>
+ function toggleRequestBody() {
+        var method = document.getElementById("httpMethod").value;
+        var bodyField = document.getElementById("body");
+        var bodyLabel = document.getElementById("bodyLabel");
 
+        // Hide the body field for GET and DELETE, show for others
+        if (method === "GET" || method === "DELETE") {
+            bodyField.style.display = "none";
+            bodyLabel.style.display = "none";
+        } else {
+            bodyField.style.display = "block";
+            bodyLabel.style.display = "block";
+        }
+    }
+
+    // Call toggleRequestBody on page load to adjust visibility based on the initial method
+    window.onload = toggleRequestBody;
         // Function to show specific section and hide others
         function showSection(sectionId) {
             // Hide all sections

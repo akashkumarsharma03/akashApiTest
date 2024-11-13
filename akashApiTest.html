@@ -155,7 +155,7 @@
                     <textarea id="uri" placeholder="Enter the API URI (e.g., /users, /products)"></textarea>
 
                     <label for="httpMethod">HTTP Method:</label>
-                    <select id="httpMethod">
+                    <select id="httpMethod"  onchange="toggleRequestBody()">
                         <option value="GET">GET</option>
                         <option value="POST">POST</option>
                         <option value="PUT">PUT</option>
@@ -371,9 +371,6 @@
             bodyLabel.style.display = "block";
         }
     }
-
-    // Call toggleRequestBody on page load to adjust visibility based on the initial method
-    window.onload = toggleRequestBody;
         // Function to show specific section and hide others
         function showSection(sectionId) {
             // Hide all sections
